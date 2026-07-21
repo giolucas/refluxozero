@@ -287,6 +287,100 @@
   .report-row .pct { color: var(--subtext); }
   .report-row .pct.full { color: var(--progress-fill); }
 
+  .calendar-card { padding: 16px; margin-bottom: 20px; }
+
+  .calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .calendar-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--heading);
+    text-transform: capitalize;
+  }
+
+  .calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    margin-bottom: 8px;
+  }
+
+  .calendar-weekdays span {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--group-label);
+    text-align: center;
+  }
+
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    row-gap: 6px;
+    justify-items: center;
+  }
+
+  .calendar-dot {
+    width: 30px;
+    height: 30px;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-default);
+    background-color: var(--btn-idle);
+    border: 2px solid transparent;
+    cursor: pointer;
+    padding: 0;
+  }
+  .calendar-dot.empty-slot { visibility: hidden; cursor: default; }
+  .calendar-dot.future { opacity: 0.3; cursor: default; }
+  .calendar-dot.today { border-color: var(--eyebrow); }
+  .calendar-dot.selected { box-shadow: 0 0 0 2px var(--heading); }
+  .calendar-dot.closed-full { background-color: var(--progress-fill); color: var(--bg); }
+  .calendar-dot.closed-mid { background-color: var(--flame); color: var(--bg); }
+  .calendar-dot.closed-low { background-color: var(--down-icon); color: var(--bg); }
+
+  .month-chart-card { padding: 20px; margin-bottom: 20px; }
+
+  .month-chart-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .month-chart-title { font-size: 14px; font-weight: 600; color: var(--heading); }
+  .month-chart-sub { font-size: 12px; color: var(--subtext); }
+
+  .month-chart-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 120px;
+  }
+
+  .month-chart-bar {
+    flex: 1;
+    min-width: 3px;
+    border-radius: 3px 3px 0 0;
+    background-color: var(--progress-track);
+  }
+
+  .month-chart-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--footer);
+    margin-top: 6px;
+  }
+
   .error-msg {
     font-size: 12px;
     color: var(--error);
@@ -317,6 +411,34 @@
       <button class="date-nav-btn" id="next-day" aria-label="Próximo dia">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
       </button>
+    </div>
+
+    <div class="card calendar-card">
+      <div class="calendar-header">
+        <button class="date-nav-btn" id="prev-month" aria-label="Mês anterior">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <span class="calendar-title" id="calendar-title"></span>
+        <button class="date-nav-btn" id="next-month" aria-label="Próximo mês">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+      <div class="calendar-weekdays">
+        <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
+      </div>
+      <div class="calendar-grid" id="calendar-grid"></div>
+    </div>
+
+    <div class="card month-chart-card">
+      <div class="month-chart-header">
+        <span class="month-chart-title">Visão do mês</span>
+        <span class="month-chart-sub" id="month-chart-sub">0 dias fechados · média 0%</span>
+      </div>
+      <div class="month-chart-bars" id="month-chart-bars"></div>
+      <div class="month-chart-labels">
+        <span id="month-chart-label-start">1</span>
+        <span id="month-chart-label-end">31</span>
+      </div>
     </div>
 
     <div class="card progress-card">
@@ -417,6 +539,48 @@
     const novaData = cursor.toISOString().split("T")[0];
     if (novaData > hoje()) return;
     dataAtual = novaData;
+    mesAtual = extrairAnoMes(dataAtual);
+    render();
+  }
+
+  function pad(n) {
+    return String(n).padStart(2, "0");
+  }
+
+  function extrairAnoMes(dataStr) {
+    const [ano, mes] = dataStr.split("-").map(Number);
+    return { ano, mes };
+  }
+
+  function chaveData(ano, mes, dia) {
+    return `${ano}-${pad(mes)}-${pad(dia)}`;
+  }
+
+  function diasNoMes(ano, mes) {
+    return new Date(ano, mes, 0).getDate();
+  }
+
+  function pontosDoDia(key) {
+    const registro = historico[key];
+    if (!registro || !registro.fechado) return null;
+    return Object.values(registro.respostas || {}).filter((v) => v === "up").length;
+  }
+
+  function corPorPontos(pontos) {
+    const pct = Math.round((pontos / ITEMS.length) * 100);
+    if (pct === 100) return "closed-full";
+    if (pct >= 50) return "closed-mid";
+    return "closed-low";
+  }
+
+  let mesAtual = extrairAnoMes(dataAtual);
+
+  function irParaMes(delta) {
+    let { ano, mes } = mesAtual;
+    mes += delta;
+    if (mes < 1) { mes = 12; ano -= 1; }
+    if (mes > 12) { mes = 1; ano += 1; }
+    mesAtual = { ano, mes };
     render();
   }
 
@@ -457,6 +621,97 @@
 
   let relatorioAberto = false;
 
+  function renderCalendario() {
+    const { ano, mes } = mesAtual;
+    const tituloMes = new Date(ano, mes - 1, 1).toLocaleDateString("pt-BR", {
+      month: "long", year: "numeric",
+    });
+    document.getElementById("calendar-title").textContent = tituloMes;
+
+    const hojeStr = hoje();
+    const primeiroDiaSemana = new Date(ano, mes - 1, 1).getDay();
+    const totalDias = diasNoMes(ano, mes);
+    const grid = document.getElementById("calendar-grid");
+    grid.innerHTML = "";
+
+    for (let i = 0; i < primeiroDiaSemana; i++) {
+      const vazio = document.createElement("span");
+      vazio.className = "calendar-dot empty-slot";
+      grid.appendChild(vazio);
+    }
+
+    for (let dia = 1; dia <= totalDias; dia++) {
+      const key = chaveData(ano, mes, dia);
+      const pontos = pontosDoDia(key);
+      const dot = document.createElement("button");
+      dot.type = "button";
+      dot.className = "calendar-dot";
+      dot.textContent = pontos !== null ? String(pontos) : String(dia);
+
+      if (key > hojeStr) {
+        dot.classList.add("future");
+        dot.disabled = true;
+      } else {
+        dot.onclick = () => {
+          dataAtual = key;
+          render();
+        };
+      }
+      if (key === hojeStr) dot.classList.add("today");
+      if (key === dataAtual) dot.classList.add("selected");
+
+      if (pontos !== null) {
+        dot.classList.add(corPorPontos(pontos));
+        const pct = Math.round((pontos / ITEMS.length) * 100);
+        dot.title = `${pontos}/${ITEMS.length} · ${pct}%`;
+      } else {
+        dot.title = new Date(key + "T00:00:00").toLocaleDateString("pt-BR");
+      }
+
+      grid.appendChild(dot);
+    }
+  }
+
+  function renderGraficoMes() {
+    const { ano, mes } = mesAtual;
+    const totalDias = diasNoMes(ano, mes);
+    const hojeStr = hoje();
+    const barsEl = document.getElementById("month-chart-bars");
+    barsEl.innerHTML = "";
+
+    let diasFechadosNoMes = 0;
+    let pontosTotais = 0;
+    const ALTURA_MAX = 116;
+
+    for (let dia = 1; dia <= totalDias; dia++) {
+      const key = chaveData(ano, mes, dia);
+      const pontos = pontosDoDia(key);
+      const bar = document.createElement("div");
+      bar.className = "month-chart-bar";
+
+      if (pontos !== null) {
+        const pct = Math.round((pontos / ITEMS.length) * 100);
+        diasFechadosNoMes++;
+        pontosTotais += pontos;
+        bar.style.height = Math.max(Math.round((pct / 100) * ALTURA_MAX), 4) + "px";
+        bar.style.backgroundColor =
+          pct === 100 ? "var(--progress-fill)" : pct >= 50 ? "var(--flame)" : "var(--down-icon)";
+        bar.title = `Dia ${dia} · ${pontos}/${ITEMS.length} · ${pct}%`;
+      } else {
+        bar.style.height = "4px";
+        bar.title = key > hojeStr ? `Dia ${dia}` : `Dia ${dia} · sem registro`;
+      }
+
+      barsEl.appendChild(bar);
+    }
+
+    const mediaPct = diasFechadosNoMes > 0 ? Math.round((pontosTotais / (diasFechadosNoMes * ITEMS.length)) * 100) : 0;
+    document.getElementById("month-chart-sub").textContent =
+      `${diasFechadosNoMes} ${diasFechadosNoMes === 1 ? "dia fechado" : "dias fechados"} · média ${mediaPct}%`;
+    document.getElementById("month-chart-label-start").textContent = "1";
+    document.getElementById("month-chart-label-end").textContent = String(totalDias);
+  }
+
   function render() {
     // Data formatada
     const dataFormatada = new Date(dataAtual + "T00:00:00").toLocaleDateString("pt-BR", {
@@ -464,6 +719,9 @@
     });
     document.getElementById("data-formatada").textContent = dataFormatada;
     document.getElementById("next-day").disabled = dataAtual >= hoje();
+
+    renderCalendario();
+    renderGraficoMes();
 
     const respostas = respostasDoDia(dataAtual);
 
@@ -605,6 +863,8 @@
 
   document.getElementById("prev-day").onclick = () => irParaDia(-1);
   document.getElementById("next-day").onclick = () => irParaDia(1);
+  document.getElementById("prev-month").onclick = () => irParaMes(-1);
+  document.getElementById("next-month").onclick = () => irParaMes(1);
 
   render();
 })();
