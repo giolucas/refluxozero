@@ -1,188 +1,396 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-<title>Refluxo Zero</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2314171A'/%3E%3Cpath d='M20 40c0-10 6-18 12-18s12 8 12 18' stroke='%237FBF8F' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Controle de refluxo — Checklist diário</title>
 <style>
-  html, body { margin: 0; padding: 0; background: #14171A; }
-  #root { min-height: 100vh; }
-</style>
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@18.3.1",
-    "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
-    "react/jsx-dev-runtime": "https://esm.sh/react@18.3.1/jsx-dev-runtime",
-    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
-    "lucide-react": "https://esm.sh/lucide-react@0.462.0?external=react"
+  :root {
+    --bg: #14171A;
+    --card: #1D2124;
+    --card-border: #2A2F32;
+    --divider: #25292C;
+    --eyebrow: #7FBF8F;
+    --heading: #EDEFEA;
+    --subtext: #8B958E;
+    --text-default: #DADDD7;
+    --text-up: #B7C9BB;
+    --text-down: #C9A79A;
+    --progress-track: #2A2F32;
+    --progress-fill: #7FBF8F;
+    --flame: #E0975A;
+    --btn-idle: #25292C;
+    --btn-idle-icon: #5C6660;
+    --btn-idle-icon-hover: #8C948E;
+    --up-bg: #2E4A34;
+    --up-icon: #8FE0A3;
+    --down-bg: #5A3B33;
+    --down-icon: #F0A98C;
+    --error: #E0A98C;
+    --footer: #5C6660;
+    --group-label: #7A8A80;
+    --close-btn-bg: #7FBF8F;
+    --close-btn-text: #14171A;
+    --closed-badge-bg: #233026;
+    --closed-badge-text: #8FE0A3;
+    --report-row-alt: #20242A;
   }
-}
-</script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background-color: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 32px 16px;
+  }
+
+  .wrap { width: 100%; max-width: 420px; }
+
+  .eyebrow {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--eyebrow);
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+
+  h1 {
+    font-size: 26px;
+    font-family: Georgia, serif;
+    color: var(--heading);
+    line-height: 1.2;
+    margin: 0;
+    font-weight: 400;
+  }
+
+  .subdate {
+    font-size: 14px;
+    color: var(--subtext);
+    text-transform: capitalize;
+    margin: 4px 0 24px;
+  }
+
+  .card {
+    background-color: var(--card);
+    border-radius: 16px;
+    border: 1px solid var(--card-border);
+    overflow: hidden;
+  }
+
+  .progress-card {
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .progress-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .progress-count {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--heading);
+  }
+
+  .progress-pct {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--progress-fill);
+  }
+
+  .progress-track {
+    height: 8px;
+    background-color: var(--progress-track);
+    border-radius: 9999px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background-color: var(--progress-fill);
+    border-radius: 9999px;
+    transition: width 0.5s;
+  }
+
+  .streak {
+    font-size: 12px;
+    color: var(--text-up);
+    margin: 12px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .group { margin-bottom: 20px; }
+
+  .group-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--group-label);
+    font-weight: 600;
+    margin: 0 0 8px 4px;
+  }
+
+  .item-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--divider);
+  }
+
+  .item-row:last-child { border-bottom: none; }
+
+  .item-text {
+    flex: 1;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--text-default);
+  }
+  .item-text.up { color: var(--text-up); }
+  .item-text.down { color: var(--text-down); }
+
+  .thumbs { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+  .thumb-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    background-color: var(--btn-idle);
+    color: var(--btn-idle-icon);
+    transition: background-color 0.15s, color 0.15s, opacity 0.15s;
+  }
+  .thumb-btn:hover:not(:disabled) { color: var(--btn-idle-icon-hover); }
+  .thumb-btn:disabled { cursor: default; opacity: 0.4; }
+  .thumb-btn.down.active { background-color: var(--down-bg); color: var(--down-icon); opacity: 1; }
+  .thumb-btn.up.active { background-color: var(--up-bg); color: var(--up-icon); opacity: 1; }
+
+  .close-wrap { margin-bottom: 28px; }
+
+  .close-btn {
+    width: 100%;
+    border: none;
+    border-radius: 14px;
+    padding: 13px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    background-color: var(--close-btn-bg);
+    color: var(--close-btn-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .close-btn:disabled { cursor: default; opacity: 0.5; }
+
+  .closed-badge {
+    background-color: var(--closed-badge-bg);
+    color: var(--closed-badge-text);
+    border-radius: 14px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .hint {
+    font-size: 12px;
+    color: var(--footer);
+    text-align: center;
+    margin: 8px 0 0;
+  }
+
+  .report-toggle {
+    width: 100%;
+    background-color: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+  }
+
+  .report-toggle-left { display: flex; align-items: center; gap: 10px; }
+  .report-title { font-size: 14px; font-weight: 600; color: var(--heading); text-align: left; }
+  .report-sub { font-size: 12px; color: var(--subtext); text-align: left; }
+
+  .report-body {
+    background-color: var(--card);
+    border: 1px solid var(--card-border);
+    border-top: none;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+    overflow: hidden;
+    margin-top: -2px;
+    display: none;
+  }
+  .report-body.open { display: block; }
+
+  .report-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 18px;
+    font-size: 13px;
+  }
+  .report-row.alt { background-color: var(--report-row-alt); }
+  .report-row .day { color: var(--text-default); }
+  .report-row .pct { color: var(--subtext); }
+  .report-row .pct.full { color: var(--progress-fill); }
+
+  .error-msg {
+    font-size: 12px;
+    color: var(--error);
+    text-align: center;
+    margin-top: 8px;
+  }
+
+  .footer-note {
+    font-size: 12px;
+    color: var(--footer);
+    text-align: center;
+    margin-top: 24px;
+    line-height: 1.5;
+  }
+
+  svg { display: block; }
+</style>
 </head>
 <body>
-<div id="root"></div>
+  <div class="wrap">
+    <p class="eyebrow">Checklist diário</p>
+    <h1>Controle de refluxo</h1>
+    <p class="subdate" id="data-formatada"></p>
+
+    <div class="card progress-card">
+      <div class="progress-top">
+        <span class="progress-count" id="progress-count">0 de 7 hábitos ok</span>
+        <span class="progress-pct" id="progress-pct">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+      <p class="streak" id="streak" style="display:none;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#E0975A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+        <span id="streak-text"></span>
+      </p>
+    </div>
+
+    <div id="groups"></div>
+
+    <div class="close-wrap">
+      <div id="close-area"></div>
+      <p class="hint" id="hint" style="display:none;">Marque ao menos um hábito para fechar o dia</p>
+    </div>
+
+    <div id="report-section" style="display:none; margin-bottom:20px;">
+      <button class="report-toggle" id="report-toggle">
+        <div class="report-toggle-left">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7FBF8F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <div>
+            <div class="report-title" id="report-title">Relatório · 0 pontos</div>
+            <div class="report-sub" id="report-sub">0 dias fechados · média 0%</div>
+          </div>
+        </div>
+        <svg id="report-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B958E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="report-body" id="report-body"></div>
+    </div>
+
+    <p class="error-msg" id="error-msg" style="display:none;">Não consegui salvar agora — tente marcar de novo.</p>
+
+    <p class="footer-note">Este checklist é um apoio de hábitos e não substitui orientação médica.</p>
+  </div>
+
 <script>
-  window.addEventListener("error", function (e) {
-    var root = document.getElementById("root");
-    if (root && !root.hasChildNodes()) {
-      root.innerHTML =
-        '<div style="color:#E0A98C;padding:24px;font-family:sans-serif;font-size:14px;">Erro ao carregar o app: ' +
-        (e.message || "erro desconhecido") +
-        "</div>";
-    }
-  });
-</script>
-<script type="text/babel" data-type="module" data-presets="react">
-import React, { useState, useEffect } from "react";
-import { createRoot } from "react-dom/client";
-import { ThumbsUp, ThumbsDown, Flame, Lock, ClipboardList, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
+(function () {
+  const ITEMS = [
+    { id: "porcoes", texto: "Comi porções menores, sem exagerar no volume", grupo: "Alimentação" },
+    { id: "intervalo", texto: "Não fiquei mais de 4-5h sem comer", grupo: "Alimentação" },
+    { id: "gatilhos", texto: "Evitei café, fritura, chocolate, cítricos e álcool", grupo: "Alimentação" },
+    { id: "jantar-cedo", texto: "Jantei cedo e de forma leve", grupo: "Alimentação" },
+    { id: "espera-deitar", texto: "Esperei 2-3h após comer antes de deitar", grupo: "Postura" },
+    { id: "cabeceira", texto: "Dormi com a cabeceira elevada", grupo: "Postura" },
+    { id: "peso", texto: "Mantive rotina de alimentação/exercício para o peso", grupo: "Hábitos" },
+  ];
 
-// Shim for the artifact-sandbox `window.storage` API, backed by localStorage.
-const storage = {
-  get: async (key) => {
-    const value = localStorage.getItem(key);
-    return value === null ? null : { value };
-  },
-  set: async (key, value) => {
-    localStorage.setItem(key, value);
-    return true;
-  },
-};
+  const STORAGE_KEY = "refluxo:historico";
 
-const COLORS = {
-  bg: "#14171A",
-  card: "#1D2124",
-  cardBorder: "#2A2F32",
-  divider: "#25292C",
-  eyebrow: "#7FBF8F",
-  heading: "#EDEFEA",
-  subtext: "#8B958E",
-  textDefault: "#DADDD7",
-  textUp: "#B7C9BB",
-  textDown: "#C9A79A",
-  progressTrack: "#2A2F32",
-  progressFill: "#7FBF8F",
-  flame: "#E0975A",
-  streakText: "#B7C9BB",
-  btnIdle: "#25292C",
-  btnIdleIcon: "#5C6660",
-  btnIdleIconHover: "#8C948E",
-  upBg: "#2E4A34",
-  upIcon: "#8FE0A3",
-  downBg: "#5A3B33",
-  downIcon: "#F0A98C",
-  error: "#E0A98C",
-  footer: "#5C6660",
-  groupLabel: "#7A8A80",
-  closeBtnBg: "#7FBF8F",
-  closeBtnText: "#14171A",
-  closedBadgeBg: "#233026",
-  closedBadgeText: "#8FE0A3",
-  reportRowAlt: "#20242A",
-};
+  const thumbsUpSVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"/></svg>';
+  const thumbsDownSVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22h0a3.13 3.13 0 0 1-3-3.88Z"/></svg>';
+  const lockSVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+  const checkSVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>';
 
-const ITEMS = [
-  { id: "porcoes", texto: "Comi porções menores, sem exagerar no volume", grupo: "Alimentação" },
-  { id: "intervalo", texto: "Não fiquei mais de 4-5h sem comer", grupo: "Alimentação" },
-  { id: "gatilhos", texto: "Evitei café, fritura, chocolate, cítricos e álcool", grupo: "Alimentação" },
-  { id: "jantar-cedo", texto: "Jantei cedo e de forma leve", grupo: "Alimentação" },
-  { id: "espera-deitar", texto: "Esperei 2-3h após comer antes de deitar", grupo: "Postura" },
-  { id: "cabeceira", texto: "Dormi com a cabeceira elevada", grupo: "Postura" },
-  { id: "peso", texto: "Mantive rotina de alimentação/exercício para o peso", grupo: "Hábitos" },
-];
+  function hoje() {
+    return new Date().toISOString().split("T")[0];
+  }
 
-const hoje = () => new Date().toISOString().split("T")[0];
-
-function ThumbButton({ active, activeBg, activeIcon, onClick, label, disabled, children }) {
-  const [hover, setHover] = useState(false);
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      aria-label={label}
-      style={{
-        width: 36,
-        height: 36,
-        borderRadius: 9999,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        border: "none",
-        cursor: disabled ? "default" : "pointer",
-        opacity: disabled && !active ? 0.4 : 1,
-        transition: "background-color 0.15s, color 0.15s",
-        backgroundColor: active ? activeBg : COLORS.btnIdle,
-        color: active ? activeIcon : hover && !disabled ? COLORS.btnIdleIconHover : COLORS.btnIdleIcon,
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
-function ChecklistRefluxo() {
-  const [data] = useState(hoje());
-  const [respostas, setRespostas] = useState({});
-  const [historico, setHistorico] = useState({}); // { [date]: { respostas: {}, fechado: bool } }
-  const [carregado, setCarregado] = useState(false);
-  const [erro, setErro] = useState(false);
-  const [relatorioAberto, setRelatorioAberto] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await storage.get("refluxo:historico");
-        const h = res ? JSON.parse(res.value) : {};
-        setHistorico(h);
-        setRespostas((h[hoje()] && h[hoje()].respostas) || {});
-      } catch {
-        setHistorico({});
-        setRespostas({});
-      } finally {
-        setCarregado(true);
-      }
-    })();
-  }, []);
-
-  const salvar = async (novoHistorico) => {
+  function carregarHistorico() {
     try {
-      const ok = await storage.set("refluxo:historico", JSON.stringify(novoHistorico));
-      setErro(!ok);
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
     } catch {
-      setErro(true);
+      return {};
     }
-  };
+  }
 
-  const diaFechado = !!(historico[data] && historico[data].fechado);
+  function salvarHistorico(historico) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(historico));
+      document.getElementById("error-msg").style.display = "none";
+    } catch {
+      document.getElementById("error-msg").style.display = "block";
+    }
+  }
 
-  const marcar = (id, valor) => {
-    if (diaFechado) return;
+  let historico = carregarHistorico();
+  const data = hoje();
+  let respostas = (historico[data] && historico[data].respostas) || {};
+
+  function diaFechado() {
+    return !!(historico[data] && historico[data].fechado);
+  }
+
+  function marcar(id, valor) {
+    if (diaFechado()) return;
     const novaResposta = respostas[id] === valor ? undefined : valor;
-    const novasRespostas = { ...respostas, [id]: novaResposta };
+    const novasRespostas = { ...respostas };
     if (novaResposta === undefined) delete novasRespostas[id];
-    setRespostas(novasRespostas);
-    const novoHistorico = { ...historico, [data]: { respostas: novasRespostas, fechado: false } };
-    setHistorico(novoHistorico);
-    salvar(novoHistorico);
-  };
+    else novasRespostas[id] = novaResposta;
+    respostas = novasRespostas;
+    historico = { ...historico, [data]: { respostas, fechado: false } };
+    salvarHistorico(historico);
+    render();
+  }
 
-  const fecharDia = () => {
-    if (diaFechado) return;
-    const novoHistorico = { ...historico, [data]: { respostas, fechado: true } };
-    setHistorico(novoHistorico);
-    salvar(novoHistorico);
-  };
+  function fecharDia() {
+    if (diaFechado()) return;
+    historico = { ...historico, [data]: { respostas, fechado: true } };
+    salvarHistorico(historico);
+    render();
+  }
 
-  const totalUp = Object.values(respostas).filter((v) => v === "up").length;
-  const progresso = Math.round((totalUp / ITEMS.length) * 100);
-  const totalRespondido = Object.values(respostas).filter(Boolean).length;
-
-  const calcularStreak = () => {
+  function calcularStreak() {
     let streak = 0;
     let cursor = new Date();
     while (true) {
@@ -195,275 +403,155 @@ function ChecklistRefluxo() {
       } else break;
     }
     return streak;
-  };
-
-  const streak = carregado ? calcularStreak() : 0;
-  const grupos = [...new Set(ITEMS.map((i) => i.grupo))];
-
-  const dataFormatada = new Date(data + "T00:00:00").toLocaleDateString("pt-BR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
-
-  // Relatório: dias fechados, ordenados do mais recente
-  const diasFechados = Object.entries(historico)
-    .filter(([, v]) => v && v.fechado)
-    .map(([dataKey, v]) => ({
-      data: dataKey,
-      pontos: Object.values(v.respostas || {}).filter((x) => x === "up").length,
-    }))
-    .sort((a, b) => (a.data < b.data ? 1 : -1));
-
-  const pontosTotais = diasFechados.reduce((acc, d) => acc + d.pontos, 0);
-  const pontosPossiveis = diasFechados.length * ITEMS.length;
-  const mediaPct = pontosPossiveis > 0 ? Math.round((pontosTotais / pontosPossiveis) * 100) : 0;
-
-  if (!carregado) {
-    return (
-      <div style={{ minHeight: "100vh", backgroundColor: COLORS.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <p style={{ color: COLORS.subtext, fontSize: 14 }}>Carregando...</p>
-      </div>
-    );
   }
 
-  return (
-    <div style={{ minHeight: "100vh", backgroundColor: COLORS.bg, padding: "32px 16px", display: "flex", justifyContent: "center" }}>
-      <div style={{ width: "100%", maxWidth: 420 }}>
-        {/* Cabeçalho */}
-        <div style={{ marginBottom: 24 }}>
-          <p style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", color: COLORS.eyebrow, fontWeight: 600, marginBottom: 4 }}>
-            Checklist diário
-          </p>
-          <h1 style={{ fontSize: 26, fontFamily: "Georgia, serif", color: COLORS.heading, lineHeight: 1.2, margin: 0 }}>
-            Controle de refluxo
-          </h1>
-          <p style={{ fontSize: 14, color: COLORS.subtext, textTransform: "capitalize", marginTop: 4 }}>
-            {dataFormatada}
-          </p>
-        </div>
+  let relatorioAberto = false;
 
-        {/* Progresso */}
-        <div style={{ backgroundColor: COLORS.card, borderRadius: 16, padding: 20, marginBottom: 20, border: `1px solid ${COLORS.cardBorder}` }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-            <span style={{ fontSize: 14, fontWeight: 500, color: COLORS.heading }}>
-              {totalUp} de {ITEMS.length} hábitos ok
-            </span>
-            <span style={{ fontSize: 14, fontWeight: 600, color: COLORS.progressFill }}>{progresso}%</span>
-          </div>
-          <div style={{ height: 8, backgroundColor: COLORS.progressTrack, borderRadius: 9999, overflow: "hidden" }}>
-            <div style={{ height: "100%", width: `${progresso}%`, backgroundColor: COLORS.progressFill, borderRadius: 9999, transition: "width 0.5s" }} />
-          </div>
-          {streak > 0 && (
-            <p style={{ fontSize: 12, color: COLORS.streakText, marginTop: 12, display: "flex", alignItems: "center", gap: 4 }}>
-              <Flame size={13} color={COLORS.flame} />
-              {streak} {streak === 1 ? "dia seguido" : "dias seguidos"} com checklist completo
-            </p>
-          )}
-        </div>
+  function render() {
+    // Data formatada
+    const dataFormatada = new Date(data + "T00:00:00").toLocaleDateString("pt-BR", {
+      weekday: "long", day: "numeric", month: "long",
+    });
+    document.getElementById("data-formatada").textContent = dataFormatada;
 
-        {/* Grupos de itens */}
-        {grupos.map((grupo) => (
-          <div key={grupo} style={{ marginBottom: 20 }}>
-            <h2 style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", color: COLORS.groupLabel, fontWeight: 600, marginBottom: 8, paddingLeft: 4 }}>
-              {grupo}
-            </h2>
-            <div style={{ backgroundColor: COLORS.card, borderRadius: 16, border: `1px solid ${COLORS.cardBorder}`, overflow: "hidden" }}>
-              {ITEMS.filter((i) => i.grupo === grupo).map((item, idx, arr) => {
-                const resposta = respostas[item.id];
-                return (
-                  <div
-                    key={item.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      padding: "14px 16px",
-                      borderBottom: idx !== arr.length - 1 ? `1px solid ${COLORS.divider}` : "none",
-                    }}
-                  >
-                    <span
-                      style={{
-                        flex: 1,
-                        fontSize: 14,
-                        lineHeight: 1.4,
-                        color: resposta === "up" ? COLORS.textUp : resposta === "down" ? COLORS.textDown : COLORS.textDefault,
-                      }}
-                    >
-                      {item.texto}
-                    </span>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                      <ThumbButton
-                        active={resposta === "down"}
-                        activeBg={COLORS.downBg}
-                        activeIcon={COLORS.downIcon}
-                        onClick={() => marcar(item.id, "down")}
-                        label="Não consegui hoje"
-                        disabled={diaFechado}
-                      >
-                        <ThumbsDown size={16} />
-                      </ThumbButton>
-                      <ThumbButton
-                        active={resposta === "up"}
-                        activeBg={COLORS.upBg}
-                        activeIcon={COLORS.upIcon}
-                        onClick={() => marcar(item.id, "up")}
-                        label="Consegui hoje"
-                        disabled={diaFechado}
-                      >
-                        <ThumbsUp size={16} />
-                      </ThumbButton>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+    // Progresso
+    const totalUp = Object.values(respostas).filter((v) => v === "up").length;
+    const progresso = Math.round((totalUp / ITEMS.length) * 100);
+    document.getElementById("progress-count").textContent = `${totalUp} de ${ITEMS.length} hábitos ok`;
+    document.getElementById("progress-pct").textContent = `${progresso}%`;
+    document.getElementById("progress-fill").style.width = `${progresso}%`;
 
-        {/* Fechar dia */}
-        <div style={{ marginBottom: 28 }}>
-          {diaFechado ? (
-            <div
-              style={{
-                backgroundColor: COLORS.closedBadgeBg,
-                color: COLORS.closedBadgeText,
-                borderRadius: 14,
-                padding: "12px 16px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-                fontSize: 14,
-                fontWeight: 600,
-              }}
-            >
-              <Lock size={15} />
-              Dia fechado — {totalUp} de {ITEMS.length} pontos
-            </div>
-          ) : (
-            <button
-              onClick={fecharDia}
-              disabled={totalRespondido === 0}
-              style={{
-                width: "100%",
-                border: "none",
-                borderRadius: 14,
-                padding: "13px 16px",
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: totalRespondido === 0 ? "default" : "pointer",
-                opacity: totalRespondido === 0 ? 0.5 : 1,
-                backgroundColor: COLORS.closeBtnBg,
-                color: COLORS.closeBtnText,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-              }}
-            >
-              <CheckCircle2 size={16} />
-              Fechar o dia
-            </button>
-          )}
-          {!diaFechado && totalRespondido === 0 && (
-            <p style={{ fontSize: 12, color: COLORS.footer, textAlign: "center", marginTop: 8 }}>
-              Marque ao menos um hábito para fechar o dia
-            </p>
-          )}
-        </div>
+    const streak = calcularStreak();
+    const streakEl = document.getElementById("streak");
+    if (streak > 0) {
+      streakEl.style.display = "flex";
+      document.getElementById("streak-text").textContent =
+        `${streak} ${streak === 1 ? "dia seguido" : "dias seguidos"} com checklist completo`;
+    } else {
+      streakEl.style.display = "none";
+    }
 
-        {/* Relatório */}
-        {diasFechados.length > 0 && (
-          <div style={{ marginBottom: 20 }}>
-            <button
-              onClick={() => setRelatorioAberto(!relatorioAberto)}
-              style={{
-                width: "100%",
-                backgroundColor: COLORS.card,
-                border: `1px solid ${COLORS.cardBorder}`,
-                borderRadius: 16,
-                padding: 18,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                cursor: "pointer",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <ClipboardList size={18} color={COLORS.eyebrow} />
-                <div style={{ textAlign: "left" }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: COLORS.heading }}>
-                    Relatório · {pontosTotais} pontos
-                  </div>
-                  <div style={{ fontSize: 12, color: COLORS.subtext }}>
-                    {diasFechados.length} {diasFechados.length === 1 ? "dia fechado" : "dias fechados"} · média {mediaPct}%
-                  </div>
-                </div>
-              </div>
-              {relatorioAberto ? (
-                <ChevronUp size={18} color={COLORS.subtext} />
-              ) : (
-                <ChevronDown size={18} color={COLORS.subtext} />
-              )}
-            </button>
+    // Grupos e itens
+    const grupos = [...new Set(ITEMS.map((i) => i.grupo))];
+    const groupsEl = document.getElementById("groups");
+    groupsEl.innerHTML = "";
+    const fechado = diaFechado();
 
-            {relatorioAberto && (
-              <div
-                style={{
-                  backgroundColor: COLORS.card,
-                  border: `1px solid ${COLORS.cardBorder}`,
-                  borderTop: "none",
-                  borderBottomLeftRadius: 16,
-                  borderBottomRightRadius: 16,
-                  overflow: "hidden",
-                  marginTop: -2,
-                }}
-              >
-                {diasFechados.map((d, idx) => {
-                  const dt = new Date(d.data + "T00:00:00").toLocaleDateString("pt-BR", {
-                    day: "2-digit",
-                    month: "2-digit",
-                  });
-                  const pct = Math.round((d.pontos / ITEMS.length) * 100);
-                  return (
-                    <div
-                      key={d.data}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "10px 18px",
-                        backgroundColor: idx % 2 === 0 ? "transparent" : COLORS.reportRowAlt,
-                      }}
-                    >
-                      <span style={{ fontSize: 13, color: COLORS.textDefault }}>{dt}</span>
-                      <span style={{ fontSize: 13, color: pct === 100 ? COLORS.progressFill : COLORS.subtext }}>
-                        {d.pontos}/{ITEMS.length} · {pct}%
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
+    grupos.forEach((grupo) => {
+      const groupDiv = document.createElement("div");
+      groupDiv.className = "group";
 
-        {erro && (
-          <p style={{ fontSize: 12, color: COLORS.error, textAlign: "center", marginTop: 8 }}>
-            Não consegui salvar agora — tente marcar de novo.
-          </p>
-        )}
+      const label = document.createElement("p");
+      label.className = "group-label";
+      label.textContent = grupo;
+      groupDiv.appendChild(label);
 
-        <p style={{ fontSize: 12, color: COLORS.footer, textAlign: "center", marginTop: 24, lineHeight: 1.5 }}>
-          Este checklist é um apoio de hábitos e não substitui orientação médica.
-        </p>
-      </div>
-    </div>
-  );
-}
+      const card = document.createElement("div");
+      card.className = "card";
 
-createRoot(document.getElementById("root")).render(<ChecklistRefluxo />);
+      ITEMS.filter((i) => i.grupo === grupo).forEach((item) => {
+        const resposta = respostas[item.id];
+        const row = document.createElement("div");
+        row.className = "item-row";
+
+        const span = document.createElement("span");
+        span.className = "item-text" + (resposta === "up" ? " up" : resposta === "down" ? " down" : "");
+        span.textContent = item.texto;
+        row.appendChild(span);
+
+        const thumbs = document.createElement("div");
+        thumbs.className = "thumbs";
+
+        const downBtn = document.createElement("button");
+        downBtn.className = "thumb-btn down" + (resposta === "down" ? " active" : "");
+        downBtn.innerHTML = thumbsDownSVG;
+        downBtn.disabled = fechado;
+        downBtn.setAttribute("aria-label", "Não consegui hoje");
+        downBtn.onclick = () => marcar(item.id, "down");
+        thumbs.appendChild(downBtn);
+
+        const upBtn = document.createElement("button");
+        upBtn.className = "thumb-btn up" + (resposta === "up" ? " active" : "");
+        upBtn.innerHTML = thumbsUpSVG;
+        upBtn.disabled = fechado;
+        upBtn.setAttribute("aria-label", "Consegui hoje");
+        upBtn.onclick = () => marcar(item.id, "up");
+        thumbs.appendChild(upBtn);
+
+        row.appendChild(thumbs);
+        card.appendChild(row);
+      });
+
+      groupDiv.appendChild(card);
+      groupsEl.appendChild(groupDiv);
+    });
+
+    // Fechar dia
+    const closeArea = document.getElementById("close-area");
+    const totalRespondido = Object.values(respostas).filter(Boolean).length;
+    closeArea.innerHTML = "";
+    if (fechado) {
+      const badge = document.createElement("div");
+      badge.className = "closed-badge";
+      badge.innerHTML = `${lockSVG}<span>Dia fechado — ${totalUp} de ${ITEMS.length} pontos</span>`;
+      closeArea.appendChild(badge);
+      document.getElementById("hint").style.display = "none";
+    } else {
+      const btn = document.createElement("button");
+      btn.className = "close-btn";
+      btn.disabled = totalRespondido === 0;
+      btn.innerHTML = `${checkSVG}<span>Fechar o dia</span>`;
+      btn.onclick = fecharDia;
+      closeArea.appendChild(btn);
+      document.getElementById("hint").style.display = totalRespondido === 0 ? "block" : "none";
+    }
+
+    // Relatório
+    const diasFechados = Object.entries(historico)
+      .filter(([, v]) => v && v.fechado)
+      .map(([dataKey, v]) => ({
+        data: dataKey,
+        pontos: Object.values(v.respostas || {}).filter((x) => x === "up").length,
+      }))
+      .sort((a, b) => (a.data < b.data ? 1 : -1));
+
+    const reportSection = document.getElementById("report-section");
+    if (diasFechados.length > 0) {
+      reportSection.style.display = "block";
+      const pontosTotais = diasFechados.reduce((acc, d) => acc + d.pontos, 0);
+      const pontosPossiveis = diasFechados.length * ITEMS.length;
+      const mediaPct = pontosPossiveis > 0 ? Math.round((pontosTotais / pontosPossiveis) * 100) : 0;
+
+      document.getElementById("report-title").textContent = `Relatório · ${pontosTotais} pontos`;
+      document.getElementById("report-sub").textContent =
+        `${diasFechados.length} ${diasFechados.length === 1 ? "dia fechado" : "dias fechados"} · média ${mediaPct}%`;
+
+      const reportBody = document.getElementById("report-body");
+      reportBody.innerHTML = "";
+      diasFechados.forEach((d, idx) => {
+        const dt = new Date(d.data + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+        const pct = Math.round((d.pontos / ITEMS.length) * 100);
+        const row = document.createElement("div");
+        row.className = "report-row" + (idx % 2 === 1 ? " alt" : "");
+        row.innerHTML = `<span class="day">${dt}</span><span class="pct${pct === 100 ? " full" : ""}">${d.pontos}/${ITEMS.length} · ${pct}%</span>`;
+        reportBody.appendChild(row);
+      });
+      reportBody.classList.toggle("open", relatorioAberto);
+      document.getElementById("report-chevron").innerHTML = relatorioAberto
+        ? '<path d="M18 15l-6-6-6 6"/>'
+        : '<path d="M6 9l6 6 6-6"/>';
+    } else {
+      reportSection.style.display = "none";
+    }
+  }
+
+  document.getElementById("report-toggle").onclick = () => {
+    relatorioAberto = !relatorioAberto;
+    render();
+  };
+
+  render();
+})();
 </script>
 </body>
 </html>
