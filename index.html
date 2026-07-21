@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>Refluxo Zero</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2314171A'/%3E%3Cpath d='M20 40c0-10 6-18 12-18s12 8 12 18' stroke='%237FBF8F' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
+<style>
+  html, body { margin: 0; padding: 0; background: #14171A; }
+  #root { min-height: 100vh; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+    "lucide-react": "https://esm.sh/lucide-react@0.462.0?external=react"
+  }
+}
+</script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-type="module" data-presets="react">
+import { useState, useEffect } from "react";
+import { createRoot } from "react-dom/client";
+import { ThumbsUp, ThumbsDown, Flame, Lock, ClipboardList, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
+
+// Shim for the artifact-sandbox `window.storage` API, backed by localStorage.
+const storage = {
+  get: async (key) => {
+    const value = localStorage.getItem(key);
+    return value === null ? null : { value };
+  },
+  set: async (key, value) => {
+    localStorage.setItem(key, value);
+    return true;
+  },
+};
+
+const COLORS = {
+  bg: "#14171A",
+  card: "#1D2124",
+  cardBorder: "#2A2F32",
+  divider: "#25292C",
+  eyebrow: "#7FBF8F",
+  heading: "#EDEFEA",
+  subtext: "#8B958E",
+  textDefault: "#DADDD7",
+  textUp: "#B7C9BB",
+  textDown: "#C9A79A",
+  progressTrack: "#2A2F32",
+  progressFill: "#7FBF8F",
+  flame: "#E0975A",
+  streakText: "#B7C9BB",
+  btnIdle: "#25292C",
+  btnIdleIcon: "#5C6660",
+  btnIdleIconHover: "#8C948E",
+  upBg: "#2E4A34",
+  upIcon: "#8FE0A3",
+  downBg: "#5A3B33",
+  downIcon: "#F0A98C",
+  error: "#E0A98C",
+  footer: "#5C6660",
+  groupLabel: "#7A8A80",
+  closeBtnBg: "#7FBF8F",
+  closeBtnText: "#14171A",
+  closedBadgeBg: "#233026",
+  closedBadgeText: "#8FE0A3",
+  reportRowAlt: "#20242A",
+};
+
+const ITEMS = [
+  { id: "porcoes", texto: "Comi porções menores, sem exagerar no volume", grupo: "Alimentação" },
+  { id: "intervalo", texto: "Não fiquei mais de 4-5h sem comer", grupo: "Alimentação" },
+  { id: "gatilhos", texto: "Evitei café, fritura, chocolate, cítricos e álcool", grupo: "Alimentação" },
+  { id: "jantar-cedo", texto: "Jantei cedo e de forma leve", grupo: "Alimentação" },
+  { id: "espera-deitar", texto: "Esperei 2-3h após comer antes de deitar", grupo: "Postura" },
+  { id: "cabeceira", texto: "Dormi com a cabeceira elevada", grupo: "Postura" },
+  { id: "peso", texto: "Mantive rotina de alimentação/exercício para o peso", grupo: "Hábitos" },
+];
+
+const hoje = () => new Date().toISOString().split("T")[0];
+
+function ThumbButton({ active, activeBg, activeIcon, onClick, label, disabled, children }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      aria-label={label}
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: 9999,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        border: "none",
+        cursor: disabled ? "default" : "pointer",
+        opacity: disabled && !active ? 0.4 : 1,
+        transition: "background-color 0.15s, color 0.15s",
+        backgroundColor: active ? activeBg : COLORS.btnIdle,
+        color: active ? activeIcon : hover && !disabled ? COLORS.btnIdleIconHover : COLORS.btnIdleIcon,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ChecklistRefluxo() {
+  const [data] = useState(hoje());
+  const [respostas, setRespostas] = useState({});
+  const [historico, setHistorico] = useState({}); // { [date]: { respostas: {}, fechado: bool } }
+  const [carregado, setCarregado] = useState(false);
+  const [erro, setErro] = useState(false);
+  const [relatorioAberto, setRelatorioAberto] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await storage.get("refluxo:historico");
+        const h = res ? JSON.parse(res.value) : {};
+        setHistorico(h);
+        setRespostas((h[hoje()] && h[hoje()].respostas) || {});
+      } catch {
+        setHistorico({});
+        setRespostas({});
+      } finally {
+        setCarregado(true);
+      }
+    })();
+  }, []);
+
+  const salvar = async (novoHistorico) => {
+    try {
+      const ok = await storage.set("refluxo:historico", JSON.stringify(novoHistorico));
+      setErro(!ok);
+    } catch {
+      setErro(true);
+    }
+  };
+
+  const diaFechado = !!(historico[data] && historico[data].fechado);
+
+  const marcar = (id, valor) => {
+    if (diaFechado) return;
+    const novaResposta = respostas[id] === valor ? undefined : valor;
+    const novasRespostas = { ...respostas, [id]: novaResposta };
+    if (novaResposta === undefined) delete novasRespostas[id];
+    setRespostas(novasRespostas);
+    const novoHistorico = { ...historico, [data]: { respostas: novasRespostas, fechado: false } };
+    setHistorico(novoHistorico);
+    salvar(novoHistorico);
+  };
+
+  const fecharDia = () => {
+    if (diaFechado) return;
+    const novoHistorico = { ...historico, [data]: { respostas, fechado: true } };
+    setHistorico(novoHistorico);
+    salvar(novoHistorico);
+  };
+
+  const totalUp = Object.values(respostas).filter((v) => v === "up").length;
+  const progresso = Math.round((totalUp / ITEMS.length) * 100);
+  const totalRespondido = Object.values(respostas).filter(Boolean).length;
+
+  const calcularStreak = () => {
+    let streak = 0;
+    let cursor = new Date();
+    while (true) {
+      const key = cursor.toISOString().split("T")[0];
+      const dia = historico[key];
+      const ups = dia ? Object.values(dia.respostas || {}).filter((v) => v === "up").length : 0;
+      if (ups === ITEMS.length && ups > 0) {
+        streak++;
+        cursor.setDate(cursor.getDate() - 1);
+      } else break;
+    }
+    return streak;
+  };
+
+  const streak = carregado ? calcularStreak() : 0;
+  const grupos = [...new Set(ITEMS.map((i) => i.grupo))];
+
+  const dataFormatada = new Date(data + "T00:00:00").toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+
+  // Relatório: dias fechados, ordenados do mais recente
+  const diasFechados = Object.entries(historico)
+    .filter(([, v]) => v && v.fechado)
+    .map(([dataKey, v]) => ({
+      data: dataKey,
+      pontos: Object.values(v.respostas || {}).filter((x) => x === "up").length,
+    }))
+    .sort((a, b) => (a.data < b.data ? 1 : -1));
+
+  const pontosTotais = diasFechados.reduce((acc, d) => acc + d.pontos, 0);
+  const pontosPossiveis = diasFechados.length * ITEMS.length;
+  const mediaPct = pontosPossiveis > 0 ? Math.round((pontosTotais / pontosPossiveis) * 100) : 0;
+
+  if (!carregado) {
+    return (
+      <div style={{ minHeight: "100vh", backgroundColor: COLORS.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <p style={{ color: COLORS.subtext, fontSize: 14 }}>Carregando...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: "100vh", backgroundColor: COLORS.bg, padding: "32px 16px", display: "flex", justifyContent: "center" }}>
+      <div style={{ width: "100%", maxWidth: 420 }}>
+        {/* Cabeçalho */}
+        <div style={{ marginBottom: 24 }}>
+          <p style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", color: COLORS.eyebrow, fontWeight: 600, marginBottom: 4 }}>
+            Checklist diário
+          </p>
+          <h1 style={{ fontSize: 26, fontFamily: "Georgia, serif", color: COLORS.heading, lineHeight: 1.2, margin: 0 }}>
+            Controle de refluxo
+          </h1>
+          <p style={{ fontSize: 14, color: COLORS.subtext, textTransform: "capitalize", marginTop: 4 }}>
+            {dataFormatada}
+          </p>
+        </div>
+
+        {/* Progresso */}
+        <div style={{ backgroundColor: COLORS.card, borderRadius: 16, padding: 20, marginBottom: 20, border: `1px solid ${COLORS.cardBorder}` }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <span style={{ fontSize: 14, fontWeight: 500, color: COLORS.heading }}>
+              {totalUp} de {ITEMS.length} hábitos ok
+            </span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: COLORS.progressFill }}>{progresso}%</span>
+          </div>
+          <div style={{ height: 8, backgroundColor: COLORS.progressTrack, borderRadius: 9999, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${progresso}%`, backgroundColor: COLORS.progressFill, borderRadius: 9999, transition: "width 0.5s" }} />
+          </div>
+          {streak > 0 && (
+            <p style={{ fontSize: 12, color: COLORS.streakText, marginTop: 12, display: "flex", alignItems: "center", gap: 4 }}>
+              <Flame size={13} color={COLORS.flame} />
+              {streak} {streak === 1 ? "dia seguido" : "dias seguidos"} com checklist completo
+            </p>
+          )}
+        </div>
+
+        {/* Grupos de itens */}
+        {grupos.map((grupo) => (
+          <div key={grupo} style={{ marginBottom: 20 }}>
+            <h2 style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", color: COLORS.groupLabel, fontWeight: 600, marginBottom: 8, paddingLeft: 4 }}>
+              {grupo}
+            </h2>
+            <div style={{ backgroundColor: COLORS.card, borderRadius: 16, border: `1px solid ${COLORS.cardBorder}`, overflow: "hidden" }}>
+              {ITEMS.filter((i) => i.grupo === grupo).map((item, idx, arr) => {
+                const resposta = respostas[item.id];
+                return (
+                  <div
+                    key={item.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "14px 16px",
+                      borderBottom: idx !== arr.length - 1 ? `1px solid ${COLORS.divider}` : "none",
+                    }}
+                  >
+                    <span
+                      style={{
+                        flex: 1,
+                        fontSize: 14,
+                        lineHeight: 1.4,
+                        color: resposta === "up" ? COLORS.textUp : resposta === "down" ? COLORS.textDown : COLORS.textDefault,
+                      }}
+                    >
+                      {item.texto}
+                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                      <ThumbButton
+                        active={resposta === "down"}
+                        activeBg={COLORS.downBg}
+                        activeIcon={COLORS.downIcon}
+                        onClick={() => marcar(item.id, "down")}
+                        label="Não consegui hoje"
+                        disabled={diaFechado}
+                      >
+                        <ThumbsDown size={16} />
+                      </ThumbButton>
+                      <ThumbButton
+                        active={resposta === "up"}
+                        activeBg={COLORS.upBg}
+                        activeIcon={COLORS.upIcon}
+                        onClick={() => marcar(item.id, "up")}
+                        label="Consegui hoje"
+                        disabled={diaFechado}
+                      >
+                        <ThumbsUp size={16} />
+                      </ThumbButton>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+
+        {/* Fechar dia */}
+        <div style={{ marginBottom: 28 }}>
+          {diaFechado ? (
+            <div
+              style={{
+                backgroundColor: COLORS.closedBadgeBg,
+                color: COLORS.closedBadgeText,
+                borderRadius: 14,
+                padding: "12px 16px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                fontSize: 14,
+                fontWeight: 600,
+              }}
+            >
+              <Lock size={15} />
+              Dia fechado — {totalUp} de {ITEMS.length} pontos
+            </div>
+          ) : (
+            <button
+              onClick={fecharDia}
+              disabled={totalRespondido === 0}
+              style={{
+                width: "100%",
+                border: "none",
+                borderRadius: 14,
+                padding: "13px 16px",
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: totalRespondido === 0 ? "default" : "pointer",
+                opacity: totalRespondido === 0 ? 0.5 : 1,
+                backgroundColor: COLORS.closeBtnBg,
+                color: COLORS.closeBtnText,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+              }}
+            >
+              <CheckCircle2 size={16} />
+              Fechar o dia
+            </button>
+          )}
+          {!diaFechado && totalRespondido === 0 && (
+            <p style={{ fontSize: 12, color: COLORS.footer, textAlign: "center", marginTop: 8 }}>
+              Marque ao menos um hábito para fechar o dia
+            </p>
+          )}
+        </div>
+
+        {/* Relatório */}
+        {diasFechados.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <button
+              onClick={() => setRelatorioAberto(!relatorioAberto)}
+              style={{
+                width: "100%",
+                backgroundColor: COLORS.card,
+                border: `1px solid ${COLORS.cardBorder}`,
+                borderRadius: 16,
+                padding: 18,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <ClipboardList size={18} color={COLORS.eyebrow} />
+                <div style={{ textAlign: "left" }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: COLORS.heading }}>
+                    Relatório · {pontosTotais} pontos
+                  </div>
+                  <div style={{ fontSize: 12, color: COLORS.subtext }}>
+                    {diasFechados.length} {diasFechados.length === 1 ? "dia fechado" : "dias fechados"} · média {mediaPct}%
+                  </div>
+                </div>
+              </div>
+              {relatorioAberto ? (
+                <ChevronUp size={18} color={COLORS.subtext} />
+              ) : (
+                <ChevronDown size={18} color={COLORS.subtext} />
+              )}
+            </button>
+
+            {relatorioAberto && (
+              <div
+                style={{
+                  backgroundColor: COLORS.card,
+                  border: `1px solid ${COLORS.cardBorder}`,
+                  borderTop: "none",
+                  borderBottomLeftRadius: 16,
+                  borderBottomRightRadius: 16,
+                  overflow: "hidden",
+                  marginTop: -2,
+                }}
+              >
+                {diasFechados.map((d, idx) => {
+                  const dt = new Date(d.data + "T00:00:00").toLocaleDateString("pt-BR", {
+                    day: "2-digit",
+                    month: "2-digit",
+                  });
+                  const pct = Math.round((d.pontos / ITEMS.length) * 100);
+                  return (
+                    <div
+                      key={d.data}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "10px 18px",
+                        backgroundColor: idx % 2 === 0 ? "transparent" : COLORS.reportRowAlt,
+                      }}
+                    >
+                      <span style={{ fontSize: 13, color: COLORS.textDefault }}>{dt}</span>
+                      <span style={{ fontSize: 13, color: pct === 100 ? COLORS.progressFill : COLORS.subtext }}>
+                        {d.pontos}/{ITEMS.length} · {pct}%
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {erro && (
+          <p style={{ fontSize: 12, color: COLORS.error, textAlign: "center", marginTop: 8 }}>
+            Não consegui salvar agora — tente marcar de novo.
+          </p>
+        )}
+
+        <p style={{ fontSize: 12, color: COLORS.footer, textAlign: "center", marginTop: 24, lineHeight: 1.5 }}>
+          Este checklist é um apoio de hábitos e não substitui orientação médica.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+createRoot(document.getElementById("root")).render(<ChecklistRefluxo />);
+</script>
+</body>
+</html>
