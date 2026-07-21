@@ -334,6 +334,23 @@
   .report-row .pct { color: var(--subtext); }
   .report-row .pct.full { color: var(--progress-fill); }
 
+  .mes-toggle {
+    width: 100%;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0;
+    margin-bottom: 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--subtext);
+  }
+  .mes-toggle:hover { color: var(--btn-idle-icon-hover); }
+
   .calendar-card { padding: 16px; margin-bottom: 20px; }
 
   .calendar-header {
@@ -477,31 +494,38 @@
       <div class="score-value" id="score-value">0.0</div>
     </div>
 
-    <div class="card calendar-card">
-      <div class="calendar-header">
-        <button class="date-nav-btn" id="prev-month" aria-label="Mês anterior">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-        </button>
-        <span class="calendar-title" id="calendar-title"></span>
-        <button class="date-nav-btn" id="next-month" aria-label="Próximo mês">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-        </button>
-      </div>
-      <div class="calendar-weekdays">
-        <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
-      </div>
-      <div class="calendar-grid" id="calendar-grid"></div>
-    </div>
+    <button class="mes-toggle" id="mes-toggle">
+      <span id="mes-toggle-label">Ocultar calendário do mês</span>
+      <svg id="mes-toggle-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
+    </button>
 
-    <div class="card month-chart-card">
-      <div class="month-chart-header">
-        <span class="month-chart-title">Visão do mês</span>
-        <span class="month-chart-sub" id="month-chart-sub">0 dias fechados · média 0%</span>
+    <div id="mes-secao">
+      <div class="card calendar-card">
+        <div class="calendar-header">
+          <button class="date-nav-btn" id="prev-month" aria-label="Mês anterior">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <span class="calendar-title" id="calendar-title"></span>
+          <button class="date-nav-btn" id="next-month" aria-label="Próximo mês">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+        </div>
+        <div class="calendar-weekdays">
+          <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
+        </div>
+        <div class="calendar-grid" id="calendar-grid"></div>
       </div>
-      <div class="month-chart-bars" id="month-chart-bars"></div>
-      <div class="month-chart-labels">
-        <span id="month-chart-label-start">1</span>
-        <span id="month-chart-label-end">31</span>
+
+      <div class="card month-chart-card">
+        <div class="month-chart-header">
+          <span class="month-chart-title">Visão do mês</span>
+          <span class="month-chart-sub" id="month-chart-sub">0 dias fechados · média 0%</span>
+        </div>
+        <div class="month-chart-bars" id="month-chart-bars"></div>
+        <div class="month-chart-labels">
+          <span id="month-chart-label-start">1</span>
+          <span id="month-chart-label-end">31</span>
+        </div>
       </div>
     </div>
 
@@ -687,6 +711,19 @@
 
   let relatorioAberto = false;
 
+  const MES_VISIVEL_KEY = "refluxo:mesVisivel";
+  let mesVisivel = localStorage.getItem(MES_VISIVEL_KEY) !== "false";
+
+  function renderMesToggle() {
+    document.getElementById("mes-secao").style.display = mesVisivel ? "block" : "none";
+    document.getElementById("mes-toggle-label").textContent = mesVisivel
+      ? "Ocultar calendário do mês"
+      : "Mostrar calendário do mês";
+    document.getElementById("mes-toggle-chevron").innerHTML = mesVisivel
+      ? '<path d="M18 15l-6-6-6 6"/>'
+      : '<path d="M6 9l6 6 6-6"/>';
+  }
+
   function renderCalendario() {
     const { ano, mes } = mesAtual;
     const tituloMes = new Date(ano, mes - 1, 1).toLocaleDateString("pt-BR", {
@@ -804,6 +841,7 @@
     document.getElementById("data-formatada").textContent = dataFormatada;
     document.getElementById("next-day").disabled = dataAtual >= hoje();
 
+    renderMesToggle();
     renderCalendario();
     renderGraficoMes();
 
@@ -949,6 +987,12 @@
 
   document.getElementById("report-toggle").onclick = () => {
     relatorioAberto = !relatorioAberto;
+    render();
+  };
+
+  document.getElementById("mes-toggle").onclick = () => {
+    mesVisivel = !mesVisivel;
+    localStorage.setItem(MES_VISIVEL_KEY, String(mesVisivel));
     render();
   };
 
