@@ -13,6 +13,8 @@
 {
   "imports": {
     "react": "https://esm.sh/react@18.3.1",
+    "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
+    "react/jsx-dev-runtime": "https://esm.sh/react@18.3.1/jsx-dev-runtime",
     "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
     "lucide-react": "https://esm.sh/lucide-react@0.462.0?external=react"
   }
@@ -22,8 +24,19 @@
 </head>
 <body>
 <div id="root"></div>
+<script>
+  window.addEventListener("error", function (e) {
+    var root = document.getElementById("root");
+    if (root && !root.hasChildNodes()) {
+      root.innerHTML =
+        '<div style="color:#E0A98C;padding:24px;font-family:sans-serif;font-size:14px;">Erro ao carregar o app: ' +
+        (e.message || "erro desconhecido") +
+        "</div>";
+    }
+  });
+</script>
 <script type="text/babel" data-type="module" data-presets="react">
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { ThumbsUp, ThumbsDown, Flame, Lock, ClipboardList, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
 
