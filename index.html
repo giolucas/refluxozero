@@ -71,11 +71,37 @@
     font-weight: 700;
   }
 
+  .date-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 4px 0 24px;
+  }
+
+  .date-nav-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    background-color: var(--btn-idle);
+    color: var(--btn-idle-icon);
+    flex-shrink: 0;
+    transition: background-color 0.15s, color 0.15s, opacity 0.15s;
+  }
+  .date-nav-btn:hover:not(:disabled) { color: var(--btn-idle-icon-hover); }
+  .date-nav-btn:disabled { cursor: default; opacity: 0.3; }
+
   .subdate {
     font-size: 14px;
     color: var(--subtext);
     text-transform: capitalize;
-    margin: 4px 0 24px;
+    margin: 0;
+    text-align: center;
   }
 
   .card {
@@ -283,7 +309,15 @@
   <div class="wrap">
     <p class="eyebrow">Checklist diário</p>
     <h1>Controle de refluxo</h1>
-    <p class="subdate" id="data-formatada"></p>
+    <div class="date-nav">
+      <button class="date-nav-btn" id="prev-day" aria-label="Dia anterior">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <p class="subdate" id="data-formatada"></p>
+      <button class="date-nav-btn" id="next-day" aria-label="Próximo dia">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+    </div>
 
     <div class="card progress-card">
       <div class="progress-top">
@@ -367,28 +401,41 @@
   }
 
   let historico = carregarHistorico();
-  const data = hoje();
-  let respostas = (historico[data] && historico[data].respostas) || {};
+  let dataAtual = hoje();
 
-  function diaFechado() {
-    return !!(historico[data] && historico[data].fechado);
+  function respostasDoDia(d) {
+    return (historico[d] && historico[d].respostas) || {};
+  }
+
+  function diaFechado(d) {
+    return !!(historico[d] && historico[d].fechado);
+  }
+
+  function irParaDia(delta) {
+    const cursor = new Date(dataAtual + "T00:00:00");
+    cursor.setDate(cursor.getDate() + delta);
+    const novaData = cursor.toISOString().split("T")[0];
+    if (novaData > hoje()) return;
+    dataAtual = novaData;
+    render();
   }
 
   function marcar(id, valor) {
-    if (diaFechado()) return;
-    const novaResposta = respostas[id] === valor ? undefined : valor;
-    const novasRespostas = { ...respostas };
+    if (diaFechado(dataAtual)) return;
+    const atual = respostasDoDia(dataAtual);
+    const novaResposta = atual[id] === valor ? undefined : valor;
+    const novasRespostas = { ...atual };
     if (novaResposta === undefined) delete novasRespostas[id];
     else novasRespostas[id] = novaResposta;
-    respostas = novasRespostas;
-    historico = { ...historico, [data]: { respostas, fechado: false } };
+    historico = { ...historico, [dataAtual]: { respostas: novasRespostas, fechado: false } };
     salvarHistorico(historico);
     render();
   }
 
   function fecharDia() {
-    if (diaFechado()) return;
-    historico = { ...historico, [data]: { respostas, fechado: true } };
+    if (diaFechado(dataAtual)) return;
+    const atual = respostasDoDia(dataAtual);
+    historico = { ...historico, [dataAtual]: { respostas: atual, fechado: true } };
     salvarHistorico(historico);
     render();
   }
@@ -412,10 +459,13 @@
 
   function render() {
     // Data formatada
-    const dataFormatada = new Date(data + "T00:00:00").toLocaleDateString("pt-BR", {
+    const dataFormatada = new Date(dataAtual + "T00:00:00").toLocaleDateString("pt-BR", {
       weekday: "long", day: "numeric", month: "long",
     });
     document.getElementById("data-formatada").textContent = dataFormatada;
+    document.getElementById("next-day").disabled = dataAtual >= hoje();
+
+    const respostas = respostasDoDia(dataAtual);
 
     // Progresso
     const totalUp = Object.values(respostas).filter((v) => v === "up").length;
@@ -438,7 +488,7 @@
     const grupos = [...new Set(ITEMS.map((i) => i.grupo))];
     const groupsEl = document.getElementById("groups");
     groupsEl.innerHTML = "";
-    const fechado = diaFechado();
+    const fechado = diaFechado(dataAtual);
 
     grupos.forEach((grupo) => {
       const groupDiv = document.createElement("div");
@@ -469,7 +519,7 @@
         downBtn.className = "thumb-btn down" + (resposta === "down" ? " active" : "");
         downBtn.innerHTML = thumbsDownSVG;
         downBtn.disabled = fechado;
-        downBtn.setAttribute("aria-label", "Não consegui hoje");
+        downBtn.setAttribute("aria-label", "Não consegui");
         downBtn.onclick = () => marcar(item.id, "down");
         thumbs.appendChild(downBtn);
 
@@ -477,7 +527,7 @@
         upBtn.className = "thumb-btn up" + (resposta === "up" ? " active" : "");
         upBtn.innerHTML = thumbsUpSVG;
         upBtn.disabled = fechado;
-        upBtn.setAttribute("aria-label", "Consegui hoje");
+        upBtn.setAttribute("aria-label", "Consegui");
         upBtn.onclick = () => marcar(item.id, "up");
         thumbs.appendChild(upBtn);
 
@@ -552,6 +602,9 @@
     relatorioAberto = !relatorioAberto;
     render();
   };
+
+  document.getElementById("prev-day").onclick = () => irParaDia(-1);
+  document.getElementById("next-day").onclick = () => irParaDia(1);
 
   render();
 })();
