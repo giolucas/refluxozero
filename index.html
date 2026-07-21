@@ -76,7 +76,28 @@
     align-items: center;
     justify-content: center;
     gap: 10px;
-    margin: 4px 0 24px;
+    margin: 4px 0 20px;
+  }
+
+  .score-section {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  .score-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--eyebrow);
+    font-weight: 700;
+    margin: 0 0 4px;
+  }
+
+  .score-value {
+    font-size: 64px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--progress-fill);
   }
 
   .date-nav-btn {
@@ -412,6 +433,11 @@
       </button>
     </div>
 
+    <div class="score-section">
+      <p class="score-label">Seu score é</p>
+      <div class="score-value" id="score-value">0.0</div>
+    </div>
+
     <div class="card calendar-card">
       <div class="calendar-header">
         <button class="date-nav-btn" id="prev-month" aria-label="Mês anterior">
@@ -731,6 +757,12 @@
     document.getElementById("progress-count").textContent = `${totalUp} de ${ITEMS.length} hábitos ok`;
     document.getElementById("progress-pct").textContent = `${progresso}%`;
     document.getElementById("progress-fill").style.width = `${progresso}%`;
+
+    // Score (0-10)
+    const score = ((totalUp / ITEMS.length) * 10).toFixed(1);
+    const scoreEl = document.getElementById("score-value");
+    scoreEl.textContent = score;
+    scoreEl.style.color = corDeFundoPorPct(progresso);
 
     const streak = calcularStreak();
     const streakEl = document.getElementById("streak");
