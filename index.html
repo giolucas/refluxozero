@@ -380,45 +380,6 @@
     margin-top: 6px;
   }
 
-  .week-card { padding: 20px; margin-bottom: 20px; }
-
-  .week-chart-bars {
-    display: flex;
-    align-items: flex-end;
-    gap: 8px;
-    height: 100px;
-    margin-bottom: 10px;
-  }
-
-  .week-chart-bar {
-    flex: 1;
-    border-radius: 4px 4px 0 0;
-    background-color: var(--progress-track);
-  }
-
-  .week-chart-bar.selected { outline: 2px solid var(--heading); outline-offset: 1px; }
-
-  .week-chips {
-    display: flex;
-    gap: 6px;
-  }
-
-  .week-chip {
-    flex: 1;
-    border: none;
-    border-radius: 9999px;
-    padding: 8px 0;
-    font-size: 12px;
-    font-weight: 600;
-    text-align: center;
-    cursor: pointer;
-    background-color: var(--btn-idle);
-    color: var(--btn-idle-icon);
-    transition: background-color 0.15s, color 0.15s, opacity 0.15s;
-  }
-  .week-chip:disabled { opacity: 0.3; cursor: default; }
-  .week-chip.active { background-color: var(--eyebrow); color: var(--bg); }
-
   .error-msg {
     font-size: 12px;
     color: var(--error);
@@ -449,15 +410,6 @@
       <button class="date-nav-btn" id="next-day" aria-label="Próximo dia">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
       </button>
-    </div>
-
-    <div class="card week-card">
-      <div class="month-chart-header">
-        <span class="month-chart-title">Visão da semana</span>
-        <span class="month-chart-sub" id="week-chart-sub">Nenhum dia fechado esta semana</span>
-      </div>
-      <div class="week-chart-bars" id="week-chart-bars"></div>
-      <div class="week-chips" id="week-chips"></div>
     </div>
 
     <div class="card calendar-card">
@@ -721,69 +673,6 @@
     }
   }
 
-  const DIAS_SEMANA_ABREV = ["D", "S", "T", "Q", "Q", "S", "S"];
-
-  function inicioDaSemana(dataStr) {
-    const d = new Date(dataStr + "T00:00:00");
-    d.setDate(d.getDate() - d.getDay());
-    return d.toISOString().split("T")[0];
-  }
-
-  function renderSemana() {
-    const inicio = inicioDaSemana(dataAtual);
-    const hojeStr = hoje();
-    const barsEl = document.getElementById("week-chart-bars");
-    const chipsEl = document.getElementById("week-chips");
-    barsEl.innerHTML = "";
-    chipsEl.innerHTML = "";
-
-    let diasFechadosNaSemana = 0;
-    let pontosTotaisSemana = 0;
-    const ALTURA_MAX = 92;
-
-    for (let i = 0; i < 7; i++) {
-      const cursor = new Date(inicio + "T00:00:00");
-      cursor.setDate(cursor.getDate() + i);
-      const key = cursor.toISOString().split("T")[0];
-      const futuro = key > hojeStr;
-      const pontos = pontosDoDia(key);
-
-      const bar = document.createElement("div");
-      bar.className = "week-chart-bar" + (key === dataAtual ? " selected" : "");
-      if (pontos !== null) {
-        const pct = Math.round((pontos / ITEMS.length) * 100);
-        diasFechadosNaSemana++;
-        pontosTotaisSemana += pontos;
-        bar.style.height = Math.max(Math.round((pct / 100) * ALTURA_MAX), 4) + "px";
-        bar.style.backgroundColor = corDeFundoPorPct(pct);
-        bar.title = `${pontos}/${ITEMS.length} · ${pct}%`;
-      } else {
-        bar.style.height = "4px";
-        bar.title = futuro ? "" : "Sem registro";
-      }
-      barsEl.appendChild(bar);
-
-      const chip = document.createElement("button");
-      chip.type = "button";
-      chip.className = "week-chip" + (key === dataAtual ? " active" : "");
-      chip.textContent = DIAS_SEMANA_ABREV[i];
-      chip.disabled = futuro;
-      if (!futuro) {
-        chip.onclick = () => {
-          dataAtual = key;
-          mesAtual = extrairAnoMes(dataAtual);
-          render();
-        };
-      }
-      chipsEl.appendChild(chip);
-    }
-
-    document.getElementById("week-chart-sub").textContent =
-      diasFechadosNaSemana > 0
-        ? `${diasFechadosNaSemana} ${diasFechadosNaSemana === 1 ? "dia fechado" : "dias fechados"} · média ${Math.round((pontosTotaisSemana / (diasFechadosNaSemana * ITEMS.length)) * 100)}%`
-        : "Nenhum dia fechado esta semana";
-  }
-
   function renderGraficoMes() {
     const { ano, mes } = mesAtual;
     const totalDias = diasNoMes(ano, mes);
@@ -831,7 +720,6 @@
     document.getElementById("data-formatada").textContent = dataFormatada;
     document.getElementById("next-day").disabled = dataAtual >= hoje();
 
-    renderSemana();
     renderCalendario();
     renderGraficoMes();
 
