@@ -699,6 +699,25 @@
     }
   }
 
+  function calcularScoreMensal() {
+    const { ano, mes } = mesAtual;
+    const totalDias = diasNoMes(ano, mes);
+    let diasFechados = 0;
+    let pontosTotais = 0;
+
+    for (let dia = 1; dia <= totalDias; dia++) {
+      const pontos = pontosDoDia(chaveData(ano, mes, dia));
+      if (pontos !== null) {
+        diasFechados++;
+        pontosTotais += pontos;
+      }
+    }
+
+    if (diasFechados === 0) return { score: 0, pct: 0 };
+    const pct = Math.round((pontosTotais / (diasFechados * ITEMS.length)) * 100);
+    return { score: pct / 10, pct };
+  }
+
   function renderGraficoMes() {
     const { ano, mes } = mesAtual;
     const totalDias = diasNoMes(ano, mes);
@@ -758,11 +777,11 @@
     document.getElementById("progress-pct").textContent = `${progresso}%`;
     document.getElementById("progress-fill").style.width = `${progresso}%`;
 
-    // Score (0-10)
-    const score = ((totalUp / ITEMS.length) * 10).toFixed(1);
+    // Score (0-10) — acumulado do mês em exibição
+    const { score, pct: scorePct } = calcularScoreMensal();
     const scoreEl = document.getElementById("score-value");
-    scoreEl.textContent = score;
-    scoreEl.style.color = corDeFundoPorPct(progresso);
+    scoreEl.textContent = score.toFixed(1);
+    scoreEl.style.color = corDeFundoPorPct(scorePct);
 
     const streak = calcularStreak();
     const streakEl = document.getElementById("streak");
