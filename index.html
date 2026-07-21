@@ -119,11 +119,26 @@
     margin: 0 0 4px;
   }
 
+  .score-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
   .score-value {
     font-size: 64px;
     font-weight: 800;
     line-height: 1;
     color: var(--progress-fill);
+  }
+
+  #score-arrow { flex-shrink: 0; }
+
+  .score-recommend {
+    font-size: 11px;
+    color: var(--subtext);
+    margin: 6px 0 0;
   }
 
   .date-nav-btn {
@@ -491,7 +506,11 @@
 
     <div class="score-section">
       <p class="score-label">Seu score é</p>
-      <div class="score-value" id="score-value">0.0</div>
+      <div class="score-row">
+        <div class="score-value" id="score-value">0.0</div>
+        <svg id="score-arrow" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>
+      </div>
+      <p class="score-recommend">Recomendado: acima de 8.5</p>
     </div>
 
     <button class="mes-toggle" id="mes-toggle">
@@ -860,6 +879,14 @@
     scoreEl.textContent = score.toFixed(1);
     scoreEl.style.color = corDeFundoPorPct(scorePct);
     document.getElementById("title-flame").style.color = corDeFundoPorPct(scorePct);
+
+    const SCORE_RECOMENDADO = 8.5;
+    const acimaDoRecomendado = score >= SCORE_RECOMENDADO;
+    const arrowEl = document.getElementById("score-arrow");
+    arrowEl.innerHTML = acimaDoRecomendado
+      ? '<path d="M12 19V5"/><path d="M5 12l7-7 7 7"/>'
+      : '<path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/>';
+    arrowEl.style.color = acimaDoRecomendado ? "var(--progress-fill)" : "var(--flame)";
 
     const streak = calcularStreak();
     const streakEl = document.getElementById("streak");
