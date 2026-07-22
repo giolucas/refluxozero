@@ -141,6 +141,37 @@
     margin: 6px 0 0;
   }
 
+  .motivational-card {
+    width: 200px;
+    aspect-ratio: 1 / 1;
+    margin: 0 auto 20px;
+    background-color: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .motivational-quote-mark {
+    font-family: Georgia, serif;
+    font-size: 44px;
+    line-height: 1;
+    color: var(--eyebrow);
+    opacity: 0.55;
+    margin-bottom: 6px;
+  }
+
+  .motivational-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-default);
+    line-height: 1.4;
+  }
+
   .date-nav-btn {
     width: 28px;
     height: 28px;
@@ -513,6 +544,11 @@
       <p class="score-recommend">Recomendado: acima de 8.5</p>
     </div>
 
+    <div class="motivational-card">
+      <span class="motivational-quote-mark">&ldquo;</span>
+      <p class="motivational-text" id="motivational-text"></p>
+    </div>
+
     <button class="mes-toggle" id="mes-toggle">
       <span id="mes-toggle-label">Ocultar calendário do mês</span>
       <svg id="mes-toggle-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
@@ -680,6 +716,13 @@
 
   function corDeFundoPorPct(pct) {
     return pct >= 80 ? "var(--progress-fill)" : "var(--flame)";
+  }
+
+  function mensagemMotivacional(score) {
+    if (score >= 8.5) return "Excelente! Seu score está no ideal — continue com esses hábitos.";
+    if (score >= 6) return "Muito bem! Você está perto do ideal de 8.5, siga firme.";
+    if (score >= 3) return "Cada hábito conta. Ajuste aos poucos até chegar nos 8.5.";
+    return "Todo começo conta. Marque seus hábitos de hoje e comece a subir seu score.";
   }
 
   let mesAtual = extrairAnoMes(dataAtual);
@@ -887,6 +930,7 @@
       ? '<path d="M12 19V5"/><path d="M5 12l7-7 7 7"/>'
       : '<path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/>';
     arrowEl.style.color = acimaDoRecomendado ? "var(--progress-fill)" : "var(--flame)";
+    document.getElementById("motivational-text").textContent = mensagemMotivacional(score);
 
     const streak = calcularStreak();
     const streakEl = document.getElementById("streak");
